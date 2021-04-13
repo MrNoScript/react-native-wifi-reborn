@@ -9,6 +9,7 @@ import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.NetworkRequest;
 import android.net.wifi.ScanResult;
+import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -299,19 +300,25 @@ public class RNWifiModule extends ReactContextBaseJavaModule {
     public void getCurrentWifiSSID(final Promise promise) {
         WifiInfo info = wifi.getConnectionInfo();
 
-        // This value should be wrapped in double quotes, so we need to unwrap it.
-        String ssid = info.getSSID();
-        if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
-            ssid = ssid.substring(1, ssid.length() - 1);
-        }
+        if(info.getSupplicantState() == SupplicantState.COMPLETED){
 
-        // Android returns `<unknown ssid>` when it is not connected or still connecting
-        if (ssid.equals("<unknown ssid>")) {
-            promise.reject(GetCurrentWifiSSIDErrorCodes.CouldNotDetectSSID.toString(), "Not connected or connecting.");
+            // This value should be wrapped in double quotes, so we need to unwrap it.
+            String ssid = info.getSSID();
+            if (ssid.startsWith("\"") && ssid.endsWith("\"")) {
+                ssid = ssid.substring(1, ssid.length() - 1);
+            }
+
+            // Android returns `<unknown ssid>` when it is not connected or still connecting
+            if (ssid.equals("<unknown ssid>")) {
+                promise.reject(GetCurrentWifiSSIDErrorCodes.CouldNotDetectSSID.toString(), "Not connected or connecting.");
+                return;
+            }
+
+            promise.resolve(ssid);
             return;
         }
 
-        promise.resolve(ssid);
+        promise.reject(GetCurrentWifiSSIDErrorCodes.CouldNotDetectSSID.toString(), "Not connected or connecting.");
     }
 
     /**
